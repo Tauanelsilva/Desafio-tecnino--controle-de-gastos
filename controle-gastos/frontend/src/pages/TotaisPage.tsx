@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { Totais } from '../types';
+import { toast } from 'react-toastify';
 
 export function TotaisPage() {
     const [totais, setTotais] = useState<Totais | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         carregarTotais();
@@ -15,10 +17,14 @@ export function TotaisPage() {
             setTotais(response.data);
         } catch (error) {
             console.error('Erro ao carregar totais:', error);
+            toast.error('Erro ao carregar os totais financeiros.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    if (!totais) return <div className="card">Carregando totais...</div>;
+    if (isLoading) return <div className="card">Carregando totais...</div>;
+    if (!totais) return <div className="card">Falha ao carregar totais.</div>;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {

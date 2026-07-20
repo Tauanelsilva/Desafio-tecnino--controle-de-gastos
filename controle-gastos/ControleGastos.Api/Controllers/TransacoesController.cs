@@ -1,5 +1,4 @@
 using ControleGastos.Api.DTOs;
-using ControleGastos.Api.Exceptions;
 using ControleGastos.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,28 +29,13 @@ public class TransacoesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TransacaoDto>> Create([FromBody] CreateTransacaoDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        try
-        {
-            var transacao = await _transacaoService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetAll), transacao);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (BusinessRuleException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ocorreu um erro interno no servidor.", details = ex.Message });
-        }
+        // Exceções como BusinessRuleException e NotFoundException 
+        // serão capturadas pelo GlobalExceptionHandlerMiddleware
+        var transacao = await _transacaoService.CreateAsync(dto);
+        
+        return CreatedAtAction(nameof(GetAll), transacao);
     }
 
     /// <summary>

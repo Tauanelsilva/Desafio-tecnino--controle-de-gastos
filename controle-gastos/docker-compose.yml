@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./ControleGastos.Api
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080" # ASP.NET 8 padronizou a porta interna para 8080
+    volumes:
+      - sqldata:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    restart: always
+
+volumes:
+  sqldata:

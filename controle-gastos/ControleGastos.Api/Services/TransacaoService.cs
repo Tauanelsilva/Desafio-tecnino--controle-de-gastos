@@ -12,18 +12,22 @@ public class TransacaoService : ITransacaoService
 {
     private readonly ITransacaoRepository _transacaoRepository;
     private readonly IPessoaRepository _pessoaRepository;
+    private readonly ILogger<TransacaoService> _logger;
 
     public TransacaoService(
         ITransacaoRepository transacaoRepository,
-        IPessoaRepository pessoaRepository)
+        IPessoaRepository pessoaRepository,
+        ILogger<TransacaoService> logger)
     {
         _transacaoRepository = transacaoRepository;
         _pessoaRepository = pessoaRepository;
+        _logger = logger;
     }
 
     /// <inheritdoc/>
     public async Task<IEnumerable<TransacaoDto>> GetAllAsync()
     {
+        _logger.LogInformation("Buscando todas as transações.");
         var transacoes = await _transacaoRepository.GetAllAsync();
         return transacoes.Select(t => new TransacaoDto
         {
@@ -39,16 +43,20 @@ public class TransacaoService : ITransacaoService
     /// <inheritdoc/>
     public async Task<TransacaoDto> CreateAsync(CreateTransacaoDto dto)
     {
+        _logger.LogInformation("Iniciando criação de transação para a pessoa ID: {PessoaId}", dto.PessoaId);
+
         // Regra de negócio 1: A pessoa informada deve existir
         var pessoa = await _pessoaRepository.GetByIdAsync(dto.PessoaId);
         if (pessoa == null)
         {
+            _logger.LogWarning("Falha na criação de transação: Pessoa ID {PessoaId} não encontrada.", dto.PessoaId);
             throw new NotFoundException("A pessoa referenciada não existe.");
         }
 
         // Regra de negócio 2: Menores de 18 anos só podem cadastrar despesas
         if (pessoa.Idade < 18 && dto.Tipo == (int)TipoTransacao.Receita)
         {
+            _logger.LogWarning("Falha de regra de negócio: Pessoa ID {PessoaId} (menor de idade) tentou cadastrar receita.", dto.PessoaId);
             throw new BusinessRuleException("Menores de 18 anos só podem cadastrar despesas.");
         }
 
@@ -61,6 +69,8 @@ public class TransacaoService : ITransacaoService
         };
 
         var result = await _transacaoRepository.AddAsync(transacao);
+        
+        _logger.LogInformation("Transação criada com sucesso. ID: {TransacaoId}, Pessoa: {PessoaId}", result.Id, result.PessoaId);
 
         return new TransacaoDto
         {
@@ -76,12 +86,13 @@ public class TransacaoService : ITransacaoService
     /// <inheritdoc/>
     public async Task<TotaisDto> GetTotaisAsync()
     {
+        _logger.LogInformation("Calculando totais gerais e por pessoa.");
+        
         var transacoes = await _transacaoRepository.GetAllAsync();
         var pessoas = await _pessoaRepository.GetAllAsync();
 
         var totaisDto = new TotaisDto();
 
-        // Agrupa as transações por pessoa e calcula os totais de cada uma (Regra de Negócio principal)
         foreach (var pessoa in pessoas)
         {
             var transacoesDaPessoa = transacoes.Where(t => t.PessoaId == pessoa.Id).ToList();
@@ -105,10 +116,11 @@ public class TransacaoService : ITransacaoService
             });
         }
 
-        // Calcula os totais gerais somando os totais individuais
         totaisDto.TotalReceitasGeral = totaisDto.Pessoas.Sum(p => p.TotalReceitas);
         totaisDto.TotalDespesasGeral = totaisDto.Pessoas.Sum(p => p.TotalDespesas);
         totaisDto.SaldoGeral = totaisDto.TotalReceitasGeral - totaisDto.TotalDespesasGeral;
+
+        _logger.LogInformation("Cálculo de totais finalizado com sucesso.");
 
         return totaisDto;
     }

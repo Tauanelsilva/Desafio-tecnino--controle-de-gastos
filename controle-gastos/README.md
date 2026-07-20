@@ -2,11 +2,18 @@
 
 Este é um projeto full-stack desenvolvido para o desafio técnico de estágio. O sistema permite o gerenciamento de pessoas, o registro de transações financeiras (receitas e despesas) e a visualização de totais por pessoa.
 
+## 📸 Capturas de Tela
+
+> *(Adicione as imagens da sua aplicação aqui)*
+> 
+> ![Dashboard de Totais](./.github/totais.png)
+> ![Cadastro de Pessoas](./.github/pessoas.png)
+
 ## 🛠 Tecnologias Utilizadas
 
-- **Back-end:** .NET 8 (C#), ASP.NET Core Web API, Entity Framework Core (SQLite).
+- **Back-end:** .NET 8 (C#), ASP.NET Core Web API, Entity Framework Core (SQLite), xUnit, Moq, ILogger.
 - **Front-end:** React 19, TypeScript, Vite, React Router, React Hook Form, Zod.
-- **Banco de Dados:** SQLite (persistência local no arquivo `gastos.db`).
+- **Infraestrutura:** Docker e Docker Compose.
 
 ## 📌 Funcionalidades e Regras de Negócio
 
@@ -32,36 +39,56 @@ Este é um projeto full-stack desenvolvido para o desafio técnico de estágio. 
 ## 🚀 Como Executar o Projeto
 
 ### Pré-requisitos
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) instalado.
-- [Node.js](https://nodejs.org/) (versão 18+ recomendada) instalado.
+- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [Node.js](https://nodejs.org/) (versão 18+)
+- [Docker](https://www.docker.com/) (Opcional, para rodar via container)
 
-### 1. Rodando o Back-end (API)
+### Opção 1: Rodando com Docker (Recomendado)
 
-Abra um terminal na pasta `ControleGastos.Api` e execute:
+A aplicação inteira pode ser executada com um único comando:
+
+```bash
+docker-compose up --build -d
+```
+- A API estará em: `http://localhost:5000`
+- O Front-end estará em: `http://localhost:5173`
+
+### Opção 2: Rodando Manualmente
+
+#### 1. Configurando o Banco de Dados (Migrations)
+Abra um terminal na pasta `ControleGastos.Api` e gere a migração inicial e atualize o banco:
 
 ```bash
 cd ControleGastos.Api
+dotnet ef migrations add InitialCreate
 dotnet run
 ```
-> A API estará disponível em: `http://localhost:5000`
-> O banco de dados SQLite (`gastos.db`) será criado automaticamente na primeira execução através do `EnsureCreated()`.
-> O Swagger (Documentação da API) está disponível em `http://localhost:5000/swagger`
+> O banco de dados `gastos.db` será criado automaticamente pelo comando `Migrate()` no `Program.cs`.
 
-### 2. Rodando o Front-end
-
-Abra um *outro* terminal na pasta `frontend` e execute:
+#### 2. Rodando o Front-end
+Em outro terminal, na pasta `frontend`:
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-> O front-end estará disponível em: `http://localhost:5173`
 
-## 🏗 Decisões de Arquitetura e Melhorias
+## 🧪 Testes Unitários
 
-Para garantir a qualidade de um projeto de nível profissional, foram aplicadas as seguintes práticas:
-- **Design System Customizado:** O frontend não utiliza frameworks de CSS prontos, mas sim uma folha de estilos (`index.css`) estruturada com variáveis globais (CSS Variables), garantindo manutenibilidade e padrão visual (UI Clean).
-- **Tipagem Estrita e Validação:** Uso do `zod` no React Hook Form e `DataAnnotations` na API para garantir que dados incorretos nunca cheguem ao banco.
-- **Tratamento Global de Exceções:** Criação de classes como `BusinessRuleException` e `NotFoundException` no backend, limpando os Controllers e centralizando regras de negócio na camada *Service*.
-- **Documentação de Código (XML Docs):** Todo o backend (.cs) foi devidamente comentado utilizando as tags summary do C#, facilitando a manutenção e a geração de documentação no Swagger.
+O projeto conta com uma suíte de testes unitários para a camada de negócios, validando as regras de idade e criação de transações.
+
+Para rodar os testes:
+```bash
+cd ControleGastos.Tests
+dotnet test
+```
+
+## 🏗 Decisões de Arquitetura e Engenharia (Diferenciais)
+
+Para garantir a qualidade de um projeto de nível **Sênior**, foram aplicadas as seguintes práticas avançadas:
+- **Middleware Global de Exceções (`GlobalExceptionHandlerMiddleware`):** Substituição de blocos `try-catch` nos Controllers por um interceptador global. Isso padroniza as respostas de erro (400 BadRequest, 404 NotFound, 500 InternalServerError) de forma centralizada.
+- **Entity Framework Migrations (`Migrate`):** Substituição do método simplório `EnsureCreated()` por `Migrate()`, permitindo evolução do esquema do banco de dados de forma profissional.
+- **Testes Automatizados (xUnit + Moq):** Implementação de testes unitários mockando o repositório para garantir que menores de idade não consigam cadastrar receitas sob nenhuma circunstância.
+- **Design System Customizado:** O frontend não utiliza frameworks de CSS prontos, mas sim uma folha de estilos (`index.css`) com variáveis globais, Loading States e validação robusta com Zod.
+- **Dockerização:** A aplicação está pronta para deploy usando `Docker` e `Docker Compose`.

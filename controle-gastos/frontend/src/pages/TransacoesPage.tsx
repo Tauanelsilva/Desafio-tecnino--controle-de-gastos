@@ -21,6 +21,8 @@ type TransacaoForm = z.infer<typeof transacaoSchema>;
 export function TransacoesPage() {
     const [transacoes, setTransacoes] = useState<Transacao[]>([]);
     const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm<TransacaoForm>({
         resolver: zodResolver(transacaoSchema)
@@ -31,6 +33,7 @@ export function TransacoesPage() {
     }, []);
 
     const carregarDados = async () => {
+        setIsLoading(true);
         try {
             const [resTransacoes, resPessoas] = await Promise.all([
                 api.get('/transacoes'),
@@ -41,10 +44,13 @@ export function TransacoesPage() {
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             toast.error('Erro ao carregar dados do servidor.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const onSubmit = async (data: TransacaoForm) => {
+        setIsSubmitting(true);
         try {
             await api.post('/transacoes', data);
             toast.success('Transação registrada com sucesso!');
@@ -57,6 +63,8 @@ export function TransacoesPage() {
                 toast.error('Erro ao registrar transação.');
             }
             console.error('Erro ao salvar transação:', error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -73,7 +81,9 @@ export function TransacoesPage() {
 
             <div className="card">
                 <h2 className="card-title">Nova Transação</h2>
-                {pessoas.length === 0 ? (
+                {isLoading ? (
+                    <p>Carregando pessoas...</p>
+                ) : pessoas.length === 0 ? (
                     <div style={{ padding: '1rem', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '8px' }}>
                         Cadastre uma pessoa primeiro para poder registrar transações.
                     </div>
@@ -83,6 +93,7 @@ export function TransacoesPage() {
                             label="Descrição" 
                             register={register('descricao')} 
                             error={errors.descricao?.message} 
+                            disabled={isSubmitting}
                         />
                         <Input 
                             label="Valor (R$)" 
@@ -90,11 +101,13 @@ export function TransacoesPage() {
                             step="0.01"
                             register={register('valor', { valueAsNumber: true })} 
                             error={errors.valor?.message} 
+                            disabled={isSubmitting}
                         />
                         <Select 
                             label="Tipo de Transação"
                             register={register('tipo', { valueAsNumber: true })}
                             error={errors.tipo?.message}
+                            disabled={isSubmitting}
                             options={[
                                 { label: 'Receita', value: 1 },
                                 { label: 'Despesa', value: 2 }
@@ -104,10 +117,11 @@ export function TransacoesPage() {
                             label="Pessoa"
                             register={register('pessoaId', { valueAsNumber: true })}
                             error={errors.pessoaId?.message}
+                            disabled={isSubmitting}
                             options={pessoas.map(p => ({ label: p.nome, value: p.id }))}
                         />
-                        <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-                            Registrar Transação
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
+                            {isSubmitting ? 'Registrando...' : 'Registrar Transação'}
                         </button>
                     </form>
                 )}
@@ -115,7 +129,9 @@ export function TransacoesPage() {
 
             <div className="card">
                 <h2 className="card-title">Histórico de Transações</h2>
-                {transacoes.length === 0 ? (
+                {isLoading ? (
+                    <p>Carregando transações...</p>
+                ) : transacoes.length === 0 ? (
                     <p>Nenhuma transação registrada.</p>
                 ) : (
                     <div className="table-container">

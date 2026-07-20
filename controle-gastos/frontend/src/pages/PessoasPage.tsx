@@ -16,6 +16,8 @@ type PessoaForm = z.infer<typeof pessoaSchema>;
 
 export function PessoasPage() {
     const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const { register, handleSubmit, reset, formState: { errors } } = useForm<PessoaForm>({
         resolver: zodResolver(pessoaSchema)
@@ -26,16 +28,20 @@ export function PessoasPage() {
     }, []);
 
     const carregarPessoas = async () => {
+        setIsLoading(true);
         try {
             const response = await api.get('/pessoas');
             setPessoas(response.data);
         } catch (error) {
             toast.error('Erro ao carregar pessoas.');
             console.error('Erro ao carregar pessoas:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const onSubmit = async (data: PessoaForm) => {
+        setIsSubmitting(true);
         try {
             await api.post('/pessoas', data);
             toast.success('Pessoa cadastrada com sucesso!');
@@ -44,6 +50,8 @@ export function PessoasPage() {
         } catch (error) {
             toast.error('Erro ao cadastrar pessoa.');
             console.error('Erro ao cadastrar:', error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -71,22 +79,26 @@ export function PessoasPage() {
                         label="Nome Completo" 
                         register={register('nome')} 
                         error={errors.nome?.message} 
+                        disabled={isSubmitting}
                     />
                     <Input 
                         label="Idade" 
                         type="number"
                         register={register('idade', { valueAsNumber: true })} 
                         error={errors.idade?.message} 
+                        disabled={isSubmitting}
                     />
-                    <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-                        Cadastrar Pessoa
+                    <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
+                        {isSubmitting ? 'Cadastrando...' : 'Cadastrar Pessoa'}
                     </button>
                 </form>
             </div>
 
             <div className="card">
                 <h2 className="card-title">Pessoas Cadastradas</h2>
-                {pessoas.length === 0 ? (
+                {isLoading ? (
+                    <p>Carregando pessoas...</p>
+                ) : pessoas.length === 0 ? (
                     <p>Nenhuma pessoa cadastrada no sistema.</p>
                 ) : (
                     <div className="table-container">
@@ -109,6 +121,7 @@ export function PessoasPage() {
                                             <button 
                                                 className="btn btn-danger" 
                                                 onClick={() => deletarPessoa(p.id)}
+                                                disabled={isLoading}
                                             >
                                                 Excluir
                                             </button>

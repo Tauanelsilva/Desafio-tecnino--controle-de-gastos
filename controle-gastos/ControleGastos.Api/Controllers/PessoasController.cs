@@ -1,5 +1,4 @@
 using ControleGastos.Api.DTOs;
-using ControleGastos.Api.Exceptions;
 using ControleGastos.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,10 +28,9 @@ public class PessoasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PessoaDto>> Create([FromBody] CreatePessoaDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        // ModelState validation is handled automatically by [ApiController] attribute, 
+        // but we keep it here for explicitness or if we want to log it
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var pessoa = await _pessoaService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = pessoa.Id }, pessoa);
@@ -60,15 +58,9 @@ public class PessoasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PessoaDto>> GetById(int id)
     {
-        try
-        {
-            var pessoa = await _pessoaService.GetByIdAsync(id);
-            return Ok(pessoa);
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
+        // Exceções como NotFoundException serão tratadas pelo GlobalExceptionHandlerMiddleware
+        var pessoa = await _pessoaService.GetByIdAsync(id);
+        return Ok(pessoa);
     }
 
     /// <summary>
@@ -81,14 +73,7 @@ public class PessoasController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        try
-        {
-            await _pessoaService.DeleteAsync(id);
-            return NoContent();
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
+        await _pessoaService.DeleteAsync(id);
+        return NoContent();
     }
 }
