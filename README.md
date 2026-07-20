@@ -45,9 +45,10 @@ Este é um projeto full-stack desenvolvido para o desafio técnico de estágio. 
 
 ### Opção 1: Rodando com Docker (Recomendado)
 
-A aplicação inteira pode ser executada com um único comando:
+A aplicação inteira pode ser executada com um único comando a partir da pasta `controle-gastos`:
 
 ```bash
+cd controle-gastos
 docker-compose up --build -d
 ```
 - A API estará em: `http://localhost:5000`
@@ -56,20 +57,20 @@ docker-compose up --build -d
 ### Opção 2: Rodando Manualmente
 
 #### 1. Configurando o Banco de Dados (Migrations)
-Abra um terminal na pasta `ControleGastos.Api` e gere a migração inicial e atualize o banco:
+Abra um terminal na pasta `controle-gastos/ControleGastos.Api` e gere a migração inicial e atualize o banco:
 
 ```bash
-cd ControleGastos.Api
+cd controle-gastos/ControleGastos.Api
 dotnet ef migrations add InitialCreate
 dotnet run
 ```
 > O banco de dados `gastos.db` será criado automaticamente pelo comando `Migrate()` no `Program.cs`.
 
 #### 2. Rodando o Front-end
-Em outro terminal, na pasta `frontend`:
+Em outro terminal, na pasta `controle-gastos/frontend`:
 
 ```bash
-cd frontend
+cd controle-gastos/frontend
 npm install
 npm run dev
 ```
@@ -80,7 +81,7 @@ O projeto conta com uma suíte de testes unitários para a camada de negócios, 
 
 Para rodar os testes:
 ```bash
-cd ControleGastos.Tests
+cd controle-gastos/ControleGastos.Tests
 dotnet test
 ```
 
