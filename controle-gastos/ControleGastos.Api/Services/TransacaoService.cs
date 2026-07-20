@@ -1,9 +1,13 @@
 using ControleGastos.Api.DTOs;
+using ControleGastos.Api.Exceptions;
 using ControleGastos.Api.Models;
 using ControleGastos.Api.Repositories;
 
 namespace ControleGastos.Api.Services;
 
+/// <summary>
+/// Implementação do serviço de transações, responsável pelas regras de negócio.
+/// </summary>
 public class TransacaoService : ITransacaoService
 {
     private readonly ITransacaoRepository _transacaoRepository;
@@ -17,6 +21,7 @@ public class TransacaoService : ITransacaoService
         _pessoaRepository = pessoaRepository;
     }
 
+    /// <inheritdoc/>
     public async Task<IEnumerable<TransacaoDto>> GetAllAsync()
     {
         var transacoes = await _transacaoRepository.GetAllAsync();
@@ -31,19 +36,20 @@ public class TransacaoService : ITransacaoService
         });
     }
 
+    /// <inheritdoc/>
     public async Task<TransacaoDto> CreateAsync(CreateTransacaoDto dto)
     {
-        // Regra de negócio: Pessoa deve existir
+        // Regra de negócio 1: A pessoa informada deve existir
         var pessoa = await _pessoaRepository.GetByIdAsync(dto.PessoaId);
         if (pessoa == null)
         {
-            throw new Exception("A pessoa referenciada não existe.");
+            throw new NotFoundException("A pessoa referenciada não existe.");
         }
 
-        // Regra de negócio: Menores de 18 anos só podem cadastrar despesas
+        // Regra de negócio 2: Menores de 18 anos só podem cadastrar despesas
         if (pessoa.Idade < 18 && dto.Tipo == (int)TipoTransacao.Receita)
         {
-            throw new Exception("Menores de 18 anos só podem cadastrar despesas.");
+            throw new BusinessRuleException("Menores de 18 anos só podem cadastrar despesas.");
         }
 
         var transacao = new Transacao
@@ -67,23 +73,43 @@ public class TransacaoService : ITransacaoService
         };
     }
 
+    /// <inheritdoc/>
     public async Task<TotaisDto> GetTotaisAsync()
     {
         var transacoes = await _transacaoRepository.GetAllAsync();
+        var pessoas = await _pessoaRepository.GetAllAsync();
 
-        var totalReceitas = transacoes
-            .Where(t => t.Tipo == TipoTransacao.Receita)
-            .Sum(t => t.Valor);
+        var totaisDto = new TotaisDto();
 
-        var totalDespesas = transacoes
-            .Where(t => t.Tipo == TipoTransacao.Despesa)
-            .Sum(t => t.Valor);
-
-        return new TotaisDto
+        // Agrupa as transações por pessoa e calcula os totais de cada uma (Regra de Negócio principal)
+        foreach (var pessoa in pessoas)
         {
-            TotalReceitas = totalReceitas,
-            TotalDespesas = totalDespesas,
-            Saldo = totalReceitas - totalDespesas
-        };
+            var transacoesDaPessoa = transacoes.Where(t => t.PessoaId == pessoa.Id).ToList();
+            
+            var totalReceitasPessoa = transacoesDaPessoa
+                .Where(t => t.Tipo == TipoTransacao.Receita)
+                .Sum(t => t.Valor);
+                
+            var totalDespesasPessoa = transacoesDaPessoa
+                .Where(t => t.Tipo == TipoTransacao.Despesa)
+                .Sum(t => t.Valor);
+                
+            totaisDto.Pessoas.Add(new TotaisPorPessoaDto
+            {
+                PessoaId = pessoa.Id,
+                Nome = pessoa.Nome,
+                Idade = pessoa.Idade,
+                TotalReceitas = totalReceitasPessoa,
+                TotalDespesas = totalDespesasPessoa,
+                Saldo = totalReceitasPessoa - totalDespesasPessoa
+            });
+        }
+
+        // Calcula os totais gerais somando os totais individuais
+        totaisDto.TotalReceitasGeral = totaisDto.Pessoas.Sum(p => p.TotalReceitas);
+        totaisDto.TotalDespesasGeral = totaisDto.Pessoas.Sum(p => p.TotalDespesas);
+        totaisDto.SaldoGeral = totaisDto.TotalReceitasGeral - totaisDto.TotalDespesasGeral;
+
+        return totaisDto;
     }
 }

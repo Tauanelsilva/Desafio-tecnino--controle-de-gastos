@@ -1,118 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import { transacoesService } from '../services/transacoesService';
+import { useEffect, useState } from 'react';
+import { api } from '../services/api';
 import { Totais } from '../types';
 
-const TotaisPage: React.FC = () => {
-  const [totais, setTotais] = useState<Totais | null>(null);
+export function TotaisPage() {
+    const [totais, setTotais] = useState<Totais | null>(null);
 
-  const fetchTotais = async () => {
-    try {
-      const data = await transacoesService.getTotais();
-      setTotais(data);
-    } catch (error) {
-      toast.error('Erro ao carregar totais.');
-    }
-  };
+    useEffect(() => {
+        carregarTotais();
+    }, []);
 
-  useEffect(() => {
-    fetchTotais();
-  }, []);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
-  const containerStyle: React.CSSProperties = {
-    maxWidth: '800px',
-    margin: '40px auto',
-    padding: '0 20px',
-  };
-
-  const cardsStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '20px',
-    marginTop: '20px',
-  };
-
-  const cardBaseStyle: React.CSSProperties = {
-    backgroundColor: '#fff',
-    borderRadius: '12px',
-    padding: '24px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    textAlign: 'center',
-  };
-
-  const getCardColor = (type: 'receita' | 'despesa' | 'saldo') => {
-    const colors = {
-      receita: { bg: '#dcfce7', text: '#166534', border: '#86efac' },
-      despesa: { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
-      saldo: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
+    const carregarTotais = async () => {
+        try {
+            const response = await api.get('/transacoes/totais');
+            setTotais(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar totais:', error);
+        }
     };
-    return colors[type];
-  };
 
-  if (!totais) {
+    if (!totais) return <div className="card">Carregando totais...</div>;
+
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    };
+
     return (
-      <div style={containerStyle}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '24px', color: '#1e293b' }}>
-          Totais Financeiros
-        </h1>
-        <p style={{ color: '#9ca3af' }}>Carregando...</p>
-      </div>
+        <div>
+            <h1>Resumo Financeiro</h1>
+
+            <div className="summary-grid">
+                <div className="summary-card">
+                    <div className="summary-title">Receitas (Geral)</div>
+                    <div className="summary-value positive">{formatCurrency(totais.totalReceitasGeral)}</div>
+                </div>
+                <div className="summary-card">
+                    <div className="summary-title">Despesas (Geral)</div>
+                    <div className="summary-value negative">{formatCurrency(totais.totalDespesasGeral)}</div>
+                </div>
+                <div className="summary-card">
+                    <div className="summary-title">Saldo Líquido (Geral)</div>
+                    <div className={`summary-value ${totais.saldoGeral >= 0 ? 'positive' : 'negative'}`}>
+                        {formatCurrency(totais.saldoGeral)}
+                    </div>
+                </div>
+            </div>
+
+            <div className="card">
+                <h2 className="card-title">Totais por Pessoa</h2>
+                {totais.pessoas.length === 0 ? (
+                    <p>Nenhuma pessoa cadastrada.</p>
+                ) : (
+                    <div className="table-container">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Pessoa</th>
+                                    <th>Idade</th>
+                                    <th>Total de Receitas</th>
+                                    <th>Total de Despesas</th>
+                                    <th>Saldo Líquido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {totais.pessoas.map((pessoa) => (
+                                    <tr key={pessoa.pessoaId}>
+                                        <td>{pessoa.nome}</td>
+                                        <td>{pessoa.idade} anos</td>
+                                        <td className="positive">{formatCurrency(pessoa.totalReceitas)}</td>
+                                        <td className="negative">{formatCurrency(pessoa.totalDespesas)}</td>
+                                        <td className={pessoa.saldo >= 0 ? 'positive' : 'negative'} style={{ fontWeight: 600 }}>
+                                            {formatCurrency(pessoa.saldo)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div>
     );
-  }
-
-  return (
-    <div style={containerStyle}>
-      <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px', color: '#1e293b' }}>
-        Totais Financeiros
-      </h1>
-      <p style={{ color: '#64748b', marginBottom: '24px' }}>
-        Resumo geral de receitas e despesas.
-      </p>
-
-      <div style={cardsStyle}>
-        {/* Total Receitas */}
-        <div style={{ ...cardBaseStyle, border: `2px solid ${getCardColor('receita').border}` }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: getCardColor('receita').text, marginBottom: '8px' }}>
-            Total Receitas
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: getCardColor('receita').text }}>
-            {formatCurrency(totais.totalReceitas)}
-          </div>
-        </div>
-
-        {/* Total Despesas */}
-        <div style={{ ...cardBaseStyle, border: `2px solid ${getCardColor('despesa').border}` }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: getCardColor('despesa').text, marginBottom: '8px' }}>
-            Total Despesas
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: getCardColor('despesa').text }}>
-            {formatCurrency(totais.totalDespesas)}
-          </div>
-        </div>
-
-        {/* Saldo */}
-        <div style={{ ...cardBaseStyle, border: `2px solid ${getCardColor('saldo').border}` }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: getCardColor('saldo').text, marginBottom: '8px' }}>
-            Saldo
-          </div>
-          <div style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            color: totais.saldo >= 0 ? getCardColor('receita').text : getCardColor('despesa').text,
-          }}>
-            {formatCurrency(totais.saldo)}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default TotaisPage;
+}

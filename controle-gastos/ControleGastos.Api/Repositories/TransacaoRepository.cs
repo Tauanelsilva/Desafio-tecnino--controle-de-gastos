@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ControleGastos.Api.Repositories;
 
+/// <summary>
+/// Implementação do repositório de transações utilizando Entity Framework Core.
+/// </summary>
 public class TransacaoRepository : ITransacaoRepository
 {
     private readonly AppDbContext _context;
@@ -13,6 +16,7 @@ public class TransacaoRepository : ITransacaoRepository
         _context = context;
     }
 
+    /// <inheritdoc/>
     public async Task<IEnumerable<Transacao>> GetAllAsync()
     {
         return await _context.Transacoes
@@ -20,6 +24,7 @@ public class TransacaoRepository : ITransacaoRepository
             .ToListAsync();
     }
 
+    /// <inheritdoc/>
     public async Task<Transacao> AddAsync(Transacao transacao)
     {
         _context.Transacoes.Add(transacao);

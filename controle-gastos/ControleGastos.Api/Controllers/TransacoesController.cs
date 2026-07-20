@@ -1,9 +1,13 @@
 using ControleGastos.Api.DTOs;
+using ControleGastos.Api.Exceptions;
 using ControleGastos.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ControleGastos.Api.Controllers;
 
+/// <summary>
+/// Controller responsável por gerenciar as transações financeiras.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class TransacoesController : ControllerBase
@@ -16,9 +20,14 @@ public class TransacoesController : ControllerBase
     }
 
     /// <summary>
-    /// Cadastra uma nova transação.
+    /// Cadastra uma nova transação financeira.
     /// </summary>
+    /// <param name="dto">Dados da transação.</param>
+    /// <returns>A transação recém-cadastrada.</returns>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(TransacaoDto))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TransacaoDto>> Create([FromBody] CreateTransacaoDto dto)
     {
         if (!ModelState.IsValid)
@@ -31,16 +40,26 @@ public class TransacoesController : ControllerBase
             var transacao = await _transacaoService.CreateAsync(dto);
             return CreatedAtAction(nameof(GetAll), transacao);
         }
-        catch (Exception ex)
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (BusinessRuleException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Ocorreu um erro interno no servidor.", details = ex.Message });
         }
     }
 
     /// <summary>
     /// Retorna todas as transações cadastradas.
     /// </summary>
+    /// <returns>Lista de transações.</returns>
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<TransacaoDto>))]
     public async Task<ActionResult<IEnumerable<TransacaoDto>>> GetAll()
     {
         var transacoes = await _transacaoService.GetAllAsync();
@@ -48,9 +67,11 @@ public class TransacoesController : ControllerBase
     }
 
     /// <summary>
-    /// Retorna os totais financeiros (receitas, despesas e saldo).
+    /// Retorna os totais financeiros (receitas, despesas e saldo) agrupados por pessoa e o total geral.
     /// </summary>
+    /// <returns>Totais financeiros agrupados e totais gerais.</returns>
     [HttpGet("totais")]
+    [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(TotaisDto))]
     public async Task<ActionResult<TotaisDto>> GetTotais()
     {
         var totais = await _transacaoService.GetTotaisAsync();
