@@ -1,5 +1,5 @@
 import api from './api';
-import { Pessoa, CreatePessoaDto } from '../types';
+import type { Pessoa, CreatePessoaDto } from '../types';
 
 export const pessoasService = {
   async getAll(): Promise<Pessoa[]> {

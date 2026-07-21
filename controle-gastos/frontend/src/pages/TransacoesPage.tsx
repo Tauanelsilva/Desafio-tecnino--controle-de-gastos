@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { api } from '../services/api';
-import { Pessoa, Transacao } from '../types';
+import type { Pessoa, Transacao } from '../types';
+import { pessoasService } from '../services/pessoasService';
+import { transacoesService } from '../services/transacoesService';
 import { Input } from '../components/common/Input';
 import { Select } from '../components/common/Select';
 import { toast } from 'react-toastify';
@@ -11,9 +12,9 @@ import { AxiosError } from 'axios';
 
 const transacaoSchema = z.object({
     descricao: z.string().min(1, 'Descrição é obrigatória').max(200),
-    valor: z.number({ invalid_type_error: "Valor deve ser um número" }).min(0.01, "Valor deve ser maior que zero"),
-    tipo: z.number().min(1).max(2),
-    pessoaId: z.number().min(1, 'Selecione uma pessoa')
+    valor: z.number({ error: 'Valor deve ser um número' }).min(0.01, 'Valor deve ser maior que zero'),
+    tipo: z.number().min(1, 'Selecione o tipo').max(2, 'Tipo inválido'),
+    pessoaId: z.number({ error: 'Selecione uma pessoa' }).min(1, 'Selecione uma pessoa'),
 });
 
 type TransacaoForm = z.infer<typeof transacaoSchema>;
@@ -24,23 +25,37 @@ export function TransacoesPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<TransacaoForm>({
-        resolver: zodResolver(transacaoSchema)
+    const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<TransacaoForm>({
+        resolver: zodResolver(transacaoSchema),
+        defaultValues: { tipo: 1 },
     });
+
+    const pessoaIdSelecionada = watch('pessoaId');
+    const pessoaSelecionada = useMemo(
+        () => pessoas.find(p => p.id === Number(pessoaIdSelecionada)),
+        [pessoas, pessoaIdSelecionada]
+    );
+    const pessoaMenorDeIdade = pessoaSelecionada !== undefined && pessoaSelecionada.idade < 18;
 
     useEffect(() => {
         carregarDados();
     }, []);
 
+    useEffect(() => {
+        if (pessoaMenorDeIdade) {
+            setValue('tipo', 2);
+        }
+    }, [pessoaMenorDeIdade, setValue]);
+
     const carregarDados = async () => {
         setIsLoading(true);
         try {
-            const [resTransacoes, resPessoas] = await Promise.all([
-                api.get('/transacoes'),
-                api.get('/pessoas')
+            const [listaTransacoes, listaPessoas] = await Promise.all([
+                transacoesService.getAll(),
+                pessoasService.getAll()
             ]);
-            setTransacoes(resTransacoes.data);
-            setPessoas(resPessoas.data);
+            setTransacoes(listaTransacoes);
+            setPessoas(listaPessoas);
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
             toast.error('Erro ao carregar dados do servidor.');
@@ -52,7 +67,7 @@ export function TransacoesPage() {
     const onSubmit = async (data: TransacaoForm) => {
         setIsSubmitting(true);
         try {
-            await api.post('/transacoes', data);
+            await transacoesService.create(data);
             toast.success('Transação registrada com sucesso!');
             reset();
             carregarDados();
@@ -74,6 +89,13 @@ export function TransacoesPage() {
             currency: 'BRL'
         }).format(value);
     };
+
+    const tipoOptions = pessoaMenorDeIdade
+        ? [{ label: 'Despesa', value: 2 }]
+        : [
+            { label: 'Receita', value: 1 },
+            { label: 'Despesa', value: 2 }
+        ];
 
     return (
         <div>
@@ -104,22 +126,27 @@ export function TransacoesPage() {
                             disabled={isSubmitting}
                         />
                         <Select 
-                            label="Tipo de Transação"
-                            register={register('tipo', { valueAsNumber: true })}
-                            error={errors.tipo?.message}
-                            disabled={isSubmitting}
-                            options={[
-                                { label: 'Receita', value: 1 },
-                                { label: 'Despesa', value: 2 }
-                            ]}
-                        />
-                        <Select 
                             label="Pessoa"
                             register={register('pessoaId', { valueAsNumber: true })}
                             error={errors.pessoaId?.message}
                             disabled={isSubmitting}
-                            options={pessoas.map(p => ({ label: p.nome, value: p.id }))}
+                            options={pessoas.map(p => ({
+                                label: `${p.nome} (${p.idade} anos)`,
+                                value: p.id
+                            }))}
                         />
+                        <Select 
+                            label="Tipo de Transação"
+                            register={register('tipo', { valueAsNumber: true })}
+                            error={errors.tipo?.message}
+                            disabled={isSubmitting || pessoaMenorDeIdade}
+                            options={tipoOptions}
+                        />
+                        {pessoaMenorDeIdade && (
+                            <p style={{ fontSize: '0.875rem', color: '#92400e', marginTop: '-0.5rem' }}>
+                                Menores de 18 anos só podem registrar despesas.
+                            </p>
+                        )}
                         <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={isSubmitting}>
                             {isSubmitting ? 'Registrando...' : 'Registrar Transação'}
                         </button>
@@ -138,6 +165,7 @@ export function TransacoesPage() {
                         <table className="table">
                             <thead>
                                 <tr>
+                                    <th>ID</th>
                                     <th>Pessoa</th>
                                     <th>Descrição</th>
                                     <th>Valor</th>
@@ -147,6 +175,7 @@ export function TransacoesPage() {
                             <tbody>
                                 {transacoes.map(t => (
                                     <tr key={t.id}>
+                                        <td>{t.id}</td>
                                         <td>{t.pessoaNome}</td>
                                         <td>{t.descricao}</td>
                                         <td className={t.tipo === 'Receita' ? 'positive' : 'negative'} style={{ fontWeight: 500 }}>

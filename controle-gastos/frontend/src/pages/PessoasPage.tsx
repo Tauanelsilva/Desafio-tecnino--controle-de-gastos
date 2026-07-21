@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { api } from '../services/api';
-import { Pessoa } from '../types';
+import type { Pessoa } from '../types';
+import { pessoasService } from '../services/pessoasService';
 import { Input } from '../components/common/Input';
 import { toast } from 'react-toastify';
+import { AxiosError } from 'axios';
 
 const pessoaSchema = z.object({
     nome: z.string().min(1, 'Nome é obrigatório').max(100),
-    idade: z.number({ invalid_type_error: "Idade deve ser um número" }).min(1).max(150),
+    idade: z.number({ error: 'Idade deve ser um número' }).min(1, 'Idade mínima: 1').max(150, 'Idade máxima: 150'),
 });
 
 type PessoaForm = z.infer<typeof pessoaSchema>;
@@ -30,8 +31,7 @@ export function PessoasPage() {
     const carregarPessoas = async () => {
         setIsLoading(true);
         try {
-            const response = await api.get('/pessoas');
-            setPessoas(response.data);
+            setPessoas(await pessoasService.getAll());
         } catch (error) {
             toast.error('Erro ao carregar pessoas.');
             console.error('Erro ao carregar pessoas:', error);
@@ -43,12 +43,16 @@ export function PessoasPage() {
     const onSubmit = async (data: PessoaForm) => {
         setIsSubmitting(true);
         try {
-            await api.post('/pessoas', data);
+            await pessoasService.create(data);
             toast.success('Pessoa cadastrada com sucesso!');
             reset();
             carregarPessoas();
         } catch (error) {
-            toast.error('Erro ao cadastrar pessoa.');
+            if (error instanceof AxiosError && error.response?.data?.message) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error('Erro ao cadastrar pessoa.');
+            }
             console.error('Erro ao cadastrar:', error);
         } finally {
             setIsSubmitting(false);
@@ -59,7 +63,7 @@ export function PessoasPage() {
         if (!window.confirm('Tem certeza? Isso excluirá todas as transações desta pessoa.')) return;
         
         try {
-            await api.delete(`/pessoas/${id}`);
+            await pessoasService.delete(id);
             toast.success('Pessoa excluída com sucesso!');
             carregarPessoas();
         } catch (error) {

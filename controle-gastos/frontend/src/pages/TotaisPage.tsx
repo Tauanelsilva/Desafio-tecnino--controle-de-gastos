@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api } from '../services/api';
-import { Totais } from '../types';
+import type { Totais } from '../types';
+import { transacoesService } from '../services/transacoesService';
 import { toast } from 'react-toastify';
 
 export function TotaisPage() {
@@ -13,8 +13,7 @@ export function TotaisPage() {
 
     const carregarTotais = async () => {
         try {
-            const response = await api.get('/transacoes/totais');
-            setTotais(response.data);
+            setTotais(await transacoesService.getTotais());
         } catch (error) {
             console.error('Erro ao carregar totais:', error);
             toast.error('Erro ao carregar os totais financeiros.');
@@ -36,23 +35,6 @@ export function TotaisPage() {
     return (
         <div>
             <h1>Resumo Financeiro</h1>
-
-            <div className="summary-grid">
-                <div className="summary-card">
-                    <div className="summary-title">Receitas (Geral)</div>
-                    <div className="summary-value positive">{formatCurrency(totais.totalReceitasGeral)}</div>
-                </div>
-                <div className="summary-card">
-                    <div className="summary-title">Despesas (Geral)</div>
-                    <div className="summary-value negative">{formatCurrency(totais.totalDespesasGeral)}</div>
-                </div>
-                <div className="summary-card">
-                    <div className="summary-title">Saldo Líquido (Geral)</div>
-                    <div className={`summary-value ${totais.saldoGeral >= 0 ? 'positive' : 'negative'}`}>
-                        {formatCurrency(totais.saldoGeral)}
-                    </div>
-                </div>
-            </div>
 
             <div className="card">
                 <h2 className="card-title">Totais por Pessoa</h2>
@@ -86,6 +68,23 @@ export function TotaisPage() {
                         </table>
                     </div>
                 )}
+            </div>
+
+            <div className="summary-grid" style={{ marginTop: '1.5rem' }}>
+                <div className="summary-card">
+                    <div className="summary-title">Total Geral de Receitas</div>
+                    <div className="summary-value positive">{formatCurrency(totais.totalReceitasGeral)}</div>
+                </div>
+                <div className="summary-card">
+                    <div className="summary-title">Total Geral de Despesas</div>
+                    <div className="summary-value negative">{formatCurrency(totais.totalDespesasGeral)}</div>
+                </div>
+                <div className="summary-card">
+                    <div className="summary-title">Saldo Líquido Geral</div>
+                    <div className={`summary-value ${totais.saldoGeral >= 0 ? 'positive' : 'negative'}`}>
+                        {formatCurrency(totais.saldoGeral)}
+                    </div>
+                </div>
             </div>
         </div>
     );

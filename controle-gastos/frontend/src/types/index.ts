@@ -4,6 +4,11 @@ export interface Pessoa {
     idade: number;
 }
 
+export interface CreatePessoaDto {
+    nome: string;
+    idade: number;
+}
+
 export interface Transacao {
     id: number;
     descricao: string;
@@ -11,6 +16,13 @@ export interface Transacao {
     tipo: string;
     pessoaId: number;
     pessoaNome: string;
+}
+
+export interface CreateTransacaoDto {
+    descricao: string;
+    valor: number;
+    tipo: number;
+    pessoaId: number;
 }
 
 export interface TotaisPorPessoa {

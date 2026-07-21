@@ -62,8 +62,9 @@ app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // IMPORTANTE: Para que isso funcione, é necessário gerar a primeira migration com o comando:
-    // dotnet ef migrations add InitialCreate
+    // A migration InitialCreate já está versionada no repositório.
+    // Para novas alterações no modelo, gere migrations com:
+    // dotnet ef migrations add NomeDaMigration --project ControleGastos.Api
     dbContext.Database.Migrate();
 }
 

@@ -1,73 +1,93 @@
-# Desafio Técnico – Controle de Gastos Residenciais
+# Controle de Gastos Residenciais
 
-Este é um projeto full-stack desenvolvido para o desafio técnico de estágio. O sistema permite o gerenciamento de pessoas, o registro de transações financeiras (receitas e despesas) e a visualização de totais por pessoa.
+Sistema full-stack para gerenciamento de gastos residenciais, desenvolvido como desafio técnico para vaga de estágio em TI (Desenvolvimento).
 
-## 📸 Capturas de Tela
+A aplicação permite cadastrar pessoas, registrar transações financeiras (receitas e despesas) e consultar totais individuais e gerais. Os dados persistem em banco SQLite e permanecem disponíveis após fechar a aplicação.
 
-> *(Adicione as imagens da sua aplicação aqui)*
-> 
-> ![Dashboard de Totais](./.github/totais.png)
-> ![Cadastro de Pessoas](./.github/pessoas.png)
+## Tecnologias
 
-## 🛠 Tecnologias Utilizadas
+| Camada | Stack |
+|--------|-------|
+| Back-end | .NET 8, ASP.NET Core Web API, Entity Framework Core, SQLite |
+| Front-end | React 19, TypeScript, Vite, React Router, React Hook Form, Zod |
+| Testes | xUnit, Moq |
+| Infra | Docker e Docker Compose |
 
-- **Back-end:** .NET 8 (C#), ASP.NET Core Web API, Entity Framework Core (SQLite), xUnit, Moq, ILogger.
-- **Front-end:** React 19, TypeScript, Vite, React Router, React Hook Form, Zod.
-- **Infraestrutura:** Docker e Docker Compose.
+## Funcionalidades implementadas
 
-## 📌 Funcionalidades e Regras de Negócio
+### Cadastro de pessoas
+- Criação, listagem e exclusão
+- Campos: `id` (auto-incremento), `nome`, `idade`
+- Ao excluir uma pessoa, todas as transações vinculadas são removidas automaticamente (cascade delete no EF Core)
 
-1. **Cadastro de Pessoas:**
-   - Permite registrar nome e idade.
-   - Pessoas cadastradas não podem ser menores de 1 ano.
+### Cadastro de transações
+- Criação e listagem
+- Campos: `id` (auto-incremento), `descricao`, `valor`, `tipo` (receita/despesa), `pessoaId`
+- A pessoa referenciada deve existir no cadastro
+- **Regra de negócio:** menores de 18 anos só podem registrar **despesas** (validado no back-end e refletido no front-end)
 
-2. **Cadastro de Transações:**
-   - Obrigatório vincular uma pessoa existente.
-   - Valores devem ser positivos (maiores que zero).
-   - *Regra de Negócio Crítica:* Menores de 18 anos só podem registrar **Despesas** (saídas).
-   
-3. **Consulta de Totais (Resumo Financeiro):**
-   - Lista todas as pessoas cadastradas exibindo:
-     - Total de receitas (individual).
-     - Total de despesas (individual).
-     - Saldo líquido (individual).
-   - Exibe no topo os totais gerais somados (Todas as Receitas, Todas as Despesas, Saldo Global).
+### Consulta de totais
+- Lista todas as pessoas com total de receitas, despesas e saldo individual
+- Ao final, exibe os totais gerais (receitas, despesas e saldo líquido)
 
-4. **Exclusão em Cascata:**
-   - Ao deletar uma pessoa, todas as suas transações vinculadas são automaticamente removidas do banco de dados (Cascade Delete).
+## Arquitetura
 
-## 🚀 Como Executar o Projeto
+```
+controle-gastos/
+├── ControleGastos.Api/       # API REST (.NET 8)
+│   ├── Controllers/          # Endpoints HTTP
+│   ├── Services/             # Regras de negócio
+│   ├── Repositories/         # Acesso a dados (EF Core)
+│   ├── Models/               # Entidades de domínio
+│   ├── DTOs/                 # Contratos de entrada/saída
+│   ├── Data/                 # DbContext
+│   └── Middlewares/          # Tratamento global de erros
+├── ControleGastos.Tests/     # Testes unitários
+└── frontend/                 # SPA React + TypeScript
+```
+
+### Decisões técnicas
+
+- **Camada de serviço:** concentra as regras de negócio (validação de idade, existência de pessoa, cálculo de totais)
+- **Middleware global de exceções:** respostas padronizadas para erros de validação (400), não encontrado (404) e erro interno (500)
+- **Migrations do EF Core:** evolução controlada do esquema do banco (substitui `EnsureCreated()`)
+- **SQLite:** atende ao requisito de persistência local sem necessidade de servidor de banco externo
+- **Testes unitários:** cobrem a regra de menores de idade e o cálculo de totais
+
+## Como executar
 
 ### Pré-requisitos
+
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/) (versão 18+)
-- [Docker](https://www.docker.com/) (Opcional, para rodar via container)
+- [Node.js 18+](https://nodejs.org/)
+- [Docker Desktop](https://www.docker.com/) *(opcional)*
 
-### Opção 1: Rodando com Docker (Recomendado)
+### Opção 1 — Docker (recomendado)
 
-A aplicação inteira pode ser executada com um único comando a partir da pasta `controle-gastos`:
+Na pasta `controle-gastos`:
 
 ```bash
-cd controle-gastos
-docker-compose up --build -d
+docker-compose up --build
 ```
-- A API estará em: `http://localhost:5000`
-- O Front-end estará em: `http://localhost:5173`
 
-### Opção 2: Rodando Manualmente
+| Serviço | URL |
+|---------|-----|
+| Front-end | http://localhost:5173 |
+| API | http://localhost:5000 |
+| Swagger | http://localhost:5000/swagger |
 
-#### 1. Configurando o Banco de Dados (Migrations)
-Abra um terminal na pasta `controle-gastos/ControleGastos.Api` e gere a migração inicial e atualize o banco:
+### Opção 2 — Execução manual
+
+**1. Back-end**
 
 ```bash
 cd controle-gastos/ControleGastos.Api
-dotnet ef migrations add InitialCreate
 dotnet run
 ```
-> O banco de dados `gastos.db` será criado automaticamente pelo comando `Migrate()` no `Program.cs`.
 
-#### 2. Rodando o Front-end
-Em outro terminal, na pasta `controle-gastos/frontend`:
+A API sobe em `http://localhost:5000`. O banco `gastos.db` é criado automaticamente via migrations ao iniciar.
+
+**2. Front-end** *(em outro terminal)*
 
 ```bash
 cd controle-gastos/frontend
@@ -75,21 +95,39 @@ npm install
 npm run dev
 ```
 
-## 🧪 Testes Unitários
+Acesse `http://localhost:5173`.
 
-O projeto conta com uma suíte de testes unitários para a camada de negócios, validando as regras de idade e criação de transações.
+> Para apontar o front-end a outra URL da API, crie `frontend/.env` com:
+> `VITE_API_URL=http://localhost:5000/api`
 
-Para rodar os testes:
+## Testes
+
 ```bash
-cd controle-gastos/ControleGastos.Tests
+cd controle-gastos
 dotnet test
 ```
 
-## 🏗 Decisões de Arquitetura e Engenharia (Diferenciais)
+Cenários cobertos:
+- Pessoa inexistente ao criar transação → `NotFoundException`
+- Menor de idade tentando criar receita → `BusinessRuleException`
+- Maior de idade criando receita → sucesso
+- Menor de idade criando despesa → sucesso
+- Cálculo de totais por pessoa e totais gerais
 
-Para garantir a qualidade de um projeto de nível **Sênior**, foram aplicadas as seguintes práticas avançadas:
-- **Middleware Global de Exceções (`GlobalExceptionHandlerMiddleware`):** Substituição de blocos `try-catch` nos Controllers por um interceptador global. Isso padroniza as respostas de erro (400 BadRequest, 404 NotFound, 500 InternalServerError) de forma centralizada.
-- **Entity Framework Migrations (`Migrate`):** Substituição do método simplório `EnsureCreated()` por `Migrate()`, permitindo evolução do esquema do banco de dados de forma profissional.
-- **Testes Automatizados (xUnit + Moq):** Implementação de testes unitários mockando o repositório para garantir que menores de idade não consigam cadastrar receitas sob nenhuma circunstância.
-- **Design System Customizado:** O frontend não utiliza frameworks de CSS prontos, mas sim uma folha de estilos (`index.css`) com variáveis globais, Loading States e validação robusta com Zod.
-- **Dockerização:** A aplicação está pronta para deploy usando `Docker` e `Docker Compose`.
+## Endpoints da API
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/pessoas` | Lista todas as pessoas |
+| `GET` | `/api/pessoas/{id}` | Busca pessoa por ID |
+| `POST` | `/api/pessoas` | Cadastra nova pessoa |
+| `DELETE` | `/api/pessoas/{id}` | Exclui pessoa e transações vinculadas |
+| `GET` | `/api/transacoes` | Lista todas as transações |
+| `POST` | `/api/transacoes` | Cadastra nova transação |
+| `GET` | `/api/transacoes/totais` | Retorna totais por pessoa e gerais |
+
+## Autor
+
+**Tauan El Silva**
+
+Repositório público: https://github.com/Tauanelsilva/Desafio-tecnino--controle-de-gastos

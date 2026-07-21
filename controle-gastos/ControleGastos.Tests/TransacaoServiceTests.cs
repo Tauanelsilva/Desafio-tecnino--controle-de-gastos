@@ -93,4 +93,45 @@ public class TransacaoServiceTests
         Assert.Equal(11, result.Id);
         Assert.Equal("Despesa", result.Tipo);
     }
+
+    [Fact]
+    public async Task GetTotaisAsync_DeveCalcularTotaisPorPessoaEGeral()
+    {
+        // Arrange
+        var pessoas = new List<Pessoa>
+        {
+            new() { Id = 1, Nome = "João", Idade = 30 },
+            new() { Id = 2, Nome = "Maria", Idade = 17 }
+        };
+
+        var transacoes = new List<Transacao>
+        {
+            new() { Id = 1, PessoaId = 1, Tipo = TipoTransacao.Receita, Valor = 1000, Descricao = "Salário" },
+            new() { Id = 2, PessoaId = 1, Tipo = TipoTransacao.Despesa, Valor = 200, Descricao = "Conta" },
+            new() { Id = 3, PessoaId = 2, Tipo = TipoTransacao.Despesa, Valor = 50, Descricao = "Lanche" }
+        };
+
+        _pessoaRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(pessoas);
+        _transacaoRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(transacoes);
+
+        // Act
+        var result = await _service.GetTotaisAsync();
+
+        // Assert
+        Assert.Equal(2, result.Pessoas.Count);
+
+        var joao = result.Pessoas.First(p => p.PessoaId == 1);
+        Assert.Equal(1000, joao.TotalReceitas);
+        Assert.Equal(200, joao.TotalDespesas);
+        Assert.Equal(800, joao.Saldo);
+
+        var maria = result.Pessoas.First(p => p.PessoaId == 2);
+        Assert.Equal(0, maria.TotalReceitas);
+        Assert.Equal(50, maria.TotalDespesas);
+        Assert.Equal(-50, maria.Saldo);
+
+        Assert.Equal(1000, result.TotalReceitasGeral);
+        Assert.Equal(250, result.TotalDespesasGeral);
+        Assert.Equal(750, result.SaldoGeral);
+    }
 }
