@@ -71,6 +71,12 @@ body {
   color: var(--color-text-main);
 }
 
+.nav-link.active {
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+  font-weight: 600;
+}
+
 /* Typography */
 h1 {
   font-size: 1.875rem;
@@ -251,3 +257,42 @@ h2 {
 
 .summary-value.positive { color: var(--color-success); }
 .summary-value.negative { color: var(--color-danger); }
+
+/* Home / Landing */
+.home-hero {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.home-hero p {
+  color: var(--color-text-muted);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.home-card {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.home-card .card-icon {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-sm);
+}
+
+.home-card h2 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.home-card p {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}

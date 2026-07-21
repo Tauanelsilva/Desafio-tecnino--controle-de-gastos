@@ -1,32 +1,38 @@
-# React + TypeScript + Vite
+# Front-end — Controle de Gastos
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interface web (SPA) do sistema de controle de gastos residenciais, construída com React 19, TypeScript e Vite.
 
-Currently, two official plugins are available:
+## Estrutura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+src/
+├── components/common/   # Componentes reutilizáveis (Input, Select)
+├── pages/               # Páginas (Home, Pessoas, Transações, Totais)
+├── services/            # Camada de acesso à API (axios)
+├── types/               # Tipos/contratos compartilhados
+├── App.tsx              # Rotas e navegação
+└── index.css            # Design system (variáveis CSS + componentes)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Scripts
+
+| Comando | Descrição |
+|---------|-----------|
+| `npm run dev` | Servidor de desenvolvimento (http://localhost:5173) |
+| `npm run build` | Build de produção com checagem de tipos |
+| `npm run lint` | Análise estática com Oxlint |
+| `npm run preview` | Pré-visualiza o build de produção |
+
+## Configuração
+
+A URL da API pode ser definida por variável de ambiente. Crie um arquivo `.env`:
+
+```
+VITE_API_URL=http://localhost:5000/api
+```
+
+Se não for definida, o padrão é `http://localhost:5000/api`.
+
+## Validação
+
+Os formulários usam **React Hook Form** com **Zod** para validação em tempo real. A regra de negócio de menores de idade (apenas despesas) é refletida na interface, mas também é validada no back-end.
