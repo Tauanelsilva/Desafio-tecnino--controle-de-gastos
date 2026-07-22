@@ -4,6 +4,20 @@ Sistema full-stack para gerenciamento de gastos residenciais, desenvolvido como 
 
 A aplicação permite cadastrar pessoas, registrar transações financeiras (receitas e despesas) e consultar totais individuais e gerais. Os dados persistem em banco SQLite e permanecem disponíveis após fechar a aplicação.
 
+## Telas
+
+### Página inicial
+![Página inicial](./docs/screenshots/home.png)
+
+### Cadastro de pessoas
+![Cadastro de pessoas](./docs/screenshots/pessoas.png)
+
+### Cadastro de transações
+![Cadastro de transações](./docs/screenshots/transacoes.png)
+
+### Consulta de totais
+![Consulta de totais](./docs/screenshots/totais.png)
+
 ## Tecnologias
 
 | Camada | Stack |
